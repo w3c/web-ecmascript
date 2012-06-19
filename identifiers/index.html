@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Tests for ECMAScript identifiers</title>
+<meta name=viewport content="width=device-width">
+<!-- Alternative output: http://mathias.html5.org/tests/javascript/identifiers/ -->
+<div id=log></div>
+<script src=http://w3c-test.org/resources/testharness.js></script>
+<script src=http://w3c-test.org/resources/testharnessreport.js></script>
+<script src=unicode-categories.js></script>
+<script>
+	(function() {
+
+		var data,
+		    identifierStart,
+		    identifierPart;
+
+		function each(array, fn) {
+			var index = -1,
+			    length = array.length;
+			while (++index < length) {
+				fn(array[index]);
+			}
+		}
+
+		function merge() {
+			var result = [];
+			each(arguments, function(argument) {
+				result = result.concat(argument);
+			});
+			return result;
+		}
+
+		data = [
+			// Null literal
+			{
+				'identifier': 'null',
+				'valid': false
+			},
+			// Boolean literals
+			{
+				'identifier': 'true',
+				'valid': false
+			},
+			{
+				'identifier': 'false',
+				'valid': false
+			},
+			// Non-reserved words that act like reserved words in strict mode
+			{
+				'identifier': 'eval',
+				'valid': true
+			},
+			{
+				'identifier': 'eval',
+				'valid': false,
+				'strict': true
+			},
+			{
+				'identifier': 'arguments',
+				'valid': true
+			},
+			{
+				'identifier': 'arguments',
+				'valid': false,
+				'strict': true
+			},
+			// Simple valid identifier
+			{
+				'identifier': 'abc123',
+				'valid': true
+			},
+			// Simple invalid identifier
+			{
+				'identifier': '123abc',
+				'valid': false
+			},
+			// http://mathiasbynens.be/notes/javascript-escapes#unicode
+			{
+				'identifier': '\\u0024',
+				'valid': true
+			},
+			{
+				'identifier': '\\u0031',
+				'valid': false
+			},
+			// http://mathiasbynens.be/notes/javascript-escapes#hexadecimal
+			{
+				'identifier': '\\x61',
+				'valid': false
+			},
+			// http://mathiasbynens.be/notes/javascript-escapes#octal
+			{
+				'identifier': '\\141',
+				'valid': false
+			},
+			// http://wiki.whatwg.org/wiki/Web_ECMAScript#Identifiers
+			{
+				'identifier': 'v\\u0061r',
+				'valid': true
+			},
+			// U+2F800 CJK Compatibility Ideograph, which is listed in the [Lo] category, is still disallowed because of http://mathiasbynens.be/notes/javascript-encoding
+			{
+				'identifier': '\ud87e\udc00',
+				'valid': false
+			}
+		];
+
+		// Keywords
+		each(['break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return', 'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while', 'with'], function(identifier) {
+			data.push({
+				'identifier': identifier,
+				'valid': false
+			});
+		});
+
+		// Future reserved words
+		each(['class', 'const', 'enum', 'export', 'extends', 'import', 'super'], function(identifier) {
+			data.push({
+				'identifier': identifier,
+				'valid': false
+			});
+		});
+
+		// Future reserved words that only apply in strict mode
+		each(['implements', 'interface', 'let', 'package', 'private', 'protected', 'public', 'static', 'yield'], function(identifier) {
+			data.push(
+				{
+					'identifier': identifier,
+					'valid': true
+				},
+				{
+					'identifier': identifier,
+					'strict': true,
+					'valid': false
+				}
+			);
+		});
+
+		// ES3 reserved words that aren't reserved words in ES5 anymore
+		each(['int', 'byte', 'char', 'goto', 'long', 'final', 'float', 'short', 'double', 'native', 'throws', 'boolean', 'abstract', 'volatile', 'transient', 'synchronized'], function(identifier) {
+			data.push({
+				'identifier': identifier,
+				'valid': true
+			});
+		});
+
+		// Supplementary code points are not included (intentionally)
+		identifierStart = merge(['$', '_'], Unicode.Lu, Unicode.Ll, Unicode.Lt, Unicode.Lm, Unicode.Lo, Unicode.Nl);
+		identifierPart = merge(identifierStart, ['\\u200c', '\\u200d'], Unicode.Mn, Unicode.Mc, Unicode.Nd, Unicode.Pc);
+
+		each(identifierStart, function(character) {
+			data.push({
+				'identifier': character,
+				'valid': true
+			});
+		});
+
+		each(identifierPart, function(character) {
+			data.push({
+				'identifier': '_' + character,
+				'valid': true
+			});
+		});
+
+		each(data, function(object) {
+			var identifier = object.identifier,
+			    isValid = object.valid,
+			    isSupported = !(function() {
+			    	try {
+			    		Function((object.strict ? '"use strict"; ' : '') + 'var ' + identifier);
+			    	} catch(e) {
+			    		return true;
+			    	}
+			    }());
+			test(
+				function() {
+					assert_equals(isValid, isSupported);
+				},
+				'`var ' + identifier + ';` should ' + (isValid ? 'work' : 'throw')
+			);
+		});
+
+	}());
+</script>
