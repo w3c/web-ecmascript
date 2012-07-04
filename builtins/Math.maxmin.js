@@ -44,4 +44,14 @@ function testMathMaxMin(aFun) {
   test(function() {
     assert_equals(Math[aFun]("1"), 1);
   }, "Should return a number.");
+  test(function() {
+    var expected = {
+      "max": 0,
+      "min": -0
+    }
+    assert_equals(Math[aFun](0, -0), expected[aFun]);
+    assert_equals(Math[aFun](-0, 0), expected[aFun]);
+    assert_equals(Math[aFun](0, 0), 0);
+    assert_equals(Math[aFun](-0, -0), -0);
+  }, "Should handle negative zero correctly.");
 }
